@@ -13,6 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
+#TODO
+#add_blank_token to vocab
+#tokenize properly in NGramData
+
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -48,6 +53,10 @@ tf.app.flags.DEFINE_string("train_dir", "/tmp", "Training directory.")
 tf.app.flags.DEFINE_string("tokenizer", "CHAR", "Set to WORD to train word level model.")
 tf.app.flags.DEFINE_integer("print_every", 1, "How many iterations to do per print.")
 
+tf.app.flags.DEFINE_string("noise_scheme", None, "Noise scheme: refer noising_utils.py")
+tf.app.flags.DEFINE_float("delta", 0, "noising rate: refer noising_utils.py")
+tf.app.flags.DEFINE_string("swap_scheme", None, "Swap scheme: refer noising_utils.py")
+
 FLAGS = tf.app.flags.FLAGS
 
 def create_model(session, vocab_size, forward_only):
@@ -71,9 +80,9 @@ def get_tokenizer(FLAGS):
   return tokenizer
 
 
-def validate(model, sess, x_dev, y_dev):
+def validate(model, sess, x_dev, y_dev, vocab):
   valid_costs, valid_lengths = [], []
-  for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_dev, y_dev, FLAGS.batch_size, FLAGS.num_layers):
+  for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_dev, y_dev, vocab, FLAGS.batch_size, FLAGS.num_layers):
     cost = model.test(sess, source_tokens, source_mask, target_tokens, target_mask)
     valid_costs.append(cost * target_mask.shape[1])
     valid_lengths.append(np.sum(target_mask[1:, :]))
@@ -86,9 +95,13 @@ def train():
   # Prepare NLC data.
   print("Preparing NLC data in %s" % FLAGS.data_dir)
 
-  x_train, y_train, x_dev, y_dev, vocab_path = nlc_data.prepare_nlc_data(
-    FLAGS.data_dir + '/' + FLAGS.tokenizer.lower(), FLAGS.max_vocab_size,
-    tokenizer=get_tokenizer(FLAGS))
+  x_train = FLAGS.data_dir + '/train.x.txt'
+  y_train = FLAGS.data_dir + '/train.y.txt'
+  x_dev = FLAGS.data_dir + '/valid.x.txt'
+  y_dev = FLAGS.data_dir + '/valid.y.txt'
+  vocab_path = FLAGS.data_dir + '/vocab.dat'
+  nlc_data.create_vocabulary(vocab_path, [x_train, y_train], FLAGS.max_vocab_size, tokenizer=get_tokenizer(FLAGS))
+
   vocab, _ = nlc_data.initialize_vocabulary(vocab_path)
   vocab_size = len(vocab)
   print("Vocabulary size: %d" % vocab_size)
@@ -97,7 +110,7 @@ def train():
     print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
     model = create_model(sess, vocab_size, False)
 
-    print('Initial validation cost: %f' % validate(model, sess, x_dev, y_dev))
+    print('Initial validation cost: %f' % validate(model, sess, x_dev, y_dev, vocab))
 
     if False:
       tic = time.time()
@@ -116,7 +129,7 @@ def train():
       current_step = 0
 
       ## Train
-      for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_train, y_train, FLAGS.batch_size, FLAGS.num_layers):
+      for source_tokens, source_mask, target_tokens, target_mask in pair_iter(x_train, y_train, vocab, FLAGS.batch_size, FLAGS.num_layers):
         # Get a batch and make a step.
         tic = time.time()
 
@@ -150,7 +163,7 @@ def train():
       model.saver.save(sess, checkpoint_path, global_step=model.global_step)
 
       ## Validate
-      valid_cost = validate(model, sess, x_dev, y_dev)
+      valid_cost = validate(model, sess, x_dev, y_dev, vocab)
 
       print("Epoch %d Validation cost: %f" % (epoch, valid_cost))
 

@@ -101,18 +101,22 @@ def get_nlc_dev_set(directory):
   return dev_path
 
 
-def basic_tokenizer(sentence):
+def basic_tokenizer(sentence, normalize_digits=False):
   """Very basic tokenizer: split the sentence into a list of tokens."""
   words = []
+  if normalize_digits:
+    sentence = re.sub(_DIGIT_RE, b"0", sentence)
   for space_separated_fragment in sentence.strip().split():
     words.extend(re.split(_WORD_SPLIT, space_separated_fragment))
   return [w for w in words if w]
 
-def char_tokenizer(sentence):
+def char_tokenizer(sentence, normalize_digits=False):
+  if normalize_digits:
+    sentence = re.sub(_DIGIT_RE, b"0", sentence)
   return list(sentence.strip())
 
 def create_vocabulary(vocabulary_path, data_paths, max_vocabulary_size,
-                      tokenizer=None, normalize_digits=False):
+                      tokenizer=None, normalize_digits=True):
   if not gfile.Exists(vocabulary_path):
     print("Creating vocabulary %s from data %s" % (vocabulary_path, str(data_paths)))
     vocab = {}
