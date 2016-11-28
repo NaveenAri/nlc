@@ -159,6 +159,8 @@ def train():
                 (epoch, current_step, cost, exp_cost / exp_length, grad_norm, param_norm, iter_time, mean_length, std_length))
 
       ## Checkpoint
+      if not os.path.exists(FLAGS.train_dir):
+        os.makedirs(FLAGS.train_dir)
       checkpoint_path = os.path.join(FLAGS.train_dir, "translate.ckpt")
       model.saver.save(sess, checkpoint_path, global_step=model.global_step)
 
