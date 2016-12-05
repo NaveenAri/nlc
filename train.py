@@ -53,6 +53,8 @@ tf.app.flags.DEFINE_string("train_dir", "/tmp", "Training directory.")
 tf.app.flags.DEFINE_string("tokenizer", "CHAR", "Set to WORD to train word level model.")
 tf.app.flags.DEFINE_integer("print_every", 1, "How many iterations to do per print.")
 
+tf.app.flags.DEFINE_string("noise_encoder", None, "Apply noising to encoder")
+tf.app.flags.DEFINE_string("noise_decoder", None, "Apply noising to decoder")
 tf.app.flags.DEFINE_string("noise_scheme", None, "Noise scheme: refer noising_utils.py")
 tf.app.flags.DEFINE_float("delta", 0, "noising rate: refer noising_utils.py")
 tf.app.flags.DEFINE_string("swap_scheme", None, "Swap scheme: refer noising_utils.py")

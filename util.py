@@ -69,16 +69,22 @@ def refill(batches, fdx, fdy, batch_size, ngd_x, ngd_y, vocab):# fills word leve
     linex, liney = fdx.readline(), fdy.readline()
     if not (linex and liney):
       break
-    x_tokens, y_tokens = tokenizer(linex, normalize_digits=True), tokenizer(liney, normalize_digits=True)
-    if FLAGS.noise_scheme:
+    x_tokens = tokenizer(linex, normalize_digits=True)
+    y_tokens = tokenizer(liney, normalize_digits=True)
+
+    if FLAGS.noise_encoder:
       x_tokens, _ = noising_utils.noise(x_tokens, x_tokens, FLAGS, ngd_x)
-      y_tokens, _ = noising_utils.noise(y_tokens, y_tokens, FLAGS, ngd_y)
       if FLAGS.tokenizer.lower()=='char':
         x_tokens = list(' '.join(x_tokens).strip())
+    if FLAGS.noise_decoder:
+      y_tokens, _ = noising_utils.noise(y_tokens, y_tokens, FLAGS, ngd_y)
+      if FLAGS.tokenizer.lower()=='char':
         y_tokens = list(' '.join(y_tokens).strip())
+    
     x_tokens = [vocab.get(token, nlc_data.UNK_ID) for token in x_tokens]
     y_tokens = [vocab.get(token, nlc_data.UNK_ID) for token in y_tokens]
     y_tokens = [nlc_data.SOS_ID] + y_tokens + [nlc_data.EOS_ID]
+
 
     if len(x_tokens) < FLAGS.max_seq_len and (len(y_tokens)-2) < FLAGS.max_seq_len:
       line_pairs.append((x_tokens, y_tokens))
